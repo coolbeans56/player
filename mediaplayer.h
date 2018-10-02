@@ -12,6 +12,8 @@
 
 class MediaPlayer : public QObject
 {
+    Q_PROPERTY(int count READ get_playlist_track_count  NOTIFY countChanged)
+    Q_PROPERTY(int playlist_selected READ get_selected_playlist)
     Q_PROPERTY(QStringList playlist_list READ get_playlist_list NOTIFY playlist_list_received)
     Q_PROPERTY(QStringList new_track_list READ get_playlist_tracks NOTIFY list_created)
     Q_PROPERTY(QStringList track_list READ get_track_list )
@@ -28,7 +30,7 @@ signals:
     void positionChanged(qint64 position);
     void list_created();
     void playlist_list_received();
-
+    void countChanged();
 
 
 
@@ -46,16 +48,23 @@ public slots:
     QStringList get_track_list();
     int getIndex();
     void on_track_selected(int index);
-    void on_create_playlist_clicked(QString name,int track_index);
+    //void on_create_playlist_clicked(QString name,int track_index);
     void load_playlist(int playlist_index);
     QStringList get_playlist_tracks();
     QStringList get_playlist_list();
-    void on_track_selected_playlist(int index);
+    //void on_track_selected_playlist(int index);
     void on_track_checkbox_checked(int index);
     void create_playlist_add_multiple(QString name);
     void on_home_clicked();
     void existing_playlist_add_multiple(int index);
     void disp_playlist_tracks(QString play_name);
+    void delete_playlist();
+    void delete_track();
+
+    void selected_playlist(int index);
+    void clear_selected_playlist();
+    int get_selected_playlist();
+    int get_playlist_track_count();
 
 
 
@@ -68,6 +77,8 @@ private:
     QStringList list_of_playlists;
     QStringList playlist_tracks;
     QList<int> track_check_state;
+    int playlist_index;
+
 
 
 };

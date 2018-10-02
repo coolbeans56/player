@@ -19,6 +19,7 @@ Window {
     property int min;
     property int sec;
     property bool checkbox_state: false
+    property int view:0
 
 
 
@@ -31,9 +32,20 @@ Window {
             min = s/60;
             sec = s%60;
             duration_field.text = min+":"+sec
+
+            if(player.selected_playlist)
+            {
+                custom_list_view.currentIndex = player.index
+                track_count.text = (custom_list_view.currentIndex+1)+"/"+player.count
+            }
+            else
+            {
             track_list.currentIndex = player.index
+            track_count.text = (track_list.currentIndex+1)+"/"+player.count
+            }
             console.log("Song change",player.index)
             console.log("Current index",track_list.currentIndex)
+
 
 
         }
@@ -192,121 +204,66 @@ Window {
             property int track_list_index:index
 
             Text{
+                id:track_title
+                x:20
                 text:modelData
+            }
+            CheckBox{
+                id:track_check_box
+                checked: false
+                onClicked: {
+                    if(checked)
+                    {
+                        player.on_track_checkbox_checked(track_list_index)
+                    }
+                }
             }
 
             MouseArea{
 
-                anchors.fill:parent
-                onClicked: player.on_track_selected(track_list_index)
+                anchors.fill:track_title
+                onClicked: {
 
-            }
-
-        }
-    }
-
-    Flickable{
-
-        Row{
-            id:row
-
-            ListView {
-                id: track_list
-
-                x: 104
-                y: 366
-                width: 300
-                height: 160
-                anchors.bottomMargin: 202
-                anchors.leftMargin: 475
-                anchors.rightMargin: 35
-                anchors.topMargin: 78
-                focus: true
-                clip: true
-                model: player.track_list
-
-                delegate:delegateName
-
-
-                highlightFollowsCurrentItem: true
-
-
-
-
-                highlight: Rectangle {
-                    width: parent.width
-                    color: "lightblue"
+                    track_list.currentIndex = track_list_index
+                    player.on_track_selected(track_list_index)
 
                 }
 
-
-
-
             }
-            ListView {
-                id: track_list_checkbox
-
-                x: 73
-                y: 366
-                width: 30
-                height: 160
-                focus: true
-                clip: true
-                visible: true
-                model:checkModel
-                property int check_count
-
-                delegate:
-
-
-                    CheckBox{
-                    id:checkDelegate
-                    text:""
-                    height:15
-                    activeFocusOnPress: true
-                    clip: false
-                    checked:false
-
-                    property int check_index:index
-                    onClicked:{
-                        checkbox_state:true
-                        track_list_checkbox.check_count++
-                        console.log(track_list_checkbox.check_count)
-
-                        player.on_track_checkbox_checked(check_index)
-                        console.log(check_index)
-                    }
-                }
-
-
-            }
-
 
         }
     }
 
 
+    ListView {
+        id: track_list
+
+        x: 104
+        y: 366
+        width: 300
+        height: 160
+        anchors.bottomMargin: 202
+        anchors.leftMargin: 475
+        anchors.rightMargin: 35
+        anchors.topMargin: 78
+        focus: true
+        clip: true
+        model: player.track_list
+
+        delegate:delegateName
 
 
+        highlightFollowsCurrentItem: true
 
-    /*checkbox */
-    ListModel {
-        id: checkModel
+        highlight: Rectangle {
+            width: parent.width
+            color: "lightblue"
 
-        Component.onCompleted: {
-            for (var i = 0; i < track_list.count; i++) {
-                append(createListElement());
-            }
         }
 
-        function createListElement() {
-            return {
-
-                text:""
-
-            };
-        }
     }
+
+
 
 
 
@@ -340,11 +297,8 @@ Window {
         property int view_flag:0
 
         highlightFollowsCurrentItem: true
-
-
-
         highlight: Rectangle {
-            width: parent.width
+            width: 300
             color: "lightblue"
 
         }
@@ -354,47 +308,44 @@ Window {
     Component{
         id:custom_delegateName
         Item{
-
-
             width:parent.width
             height:15
-            property int track_list_index:index
-
-
+            property int custom_index:index
             Text{
+                id:custom_text
+                x:20
                 text:modelData
             }
-
-            MouseArea{
-                id:custom_mouseArea
-
-
-                anchors.fill:parent
-                onClicked:
-                {
-                    console.log(custom_list_view.view_flag)
-
-                    if(!custom_list_view.view_flag&&!playlist_options.existing_option_pressed)
+            CheckBox{
+                id:custom_checkbox
+                checked:false
+                onClicked:{
+                    if(checked)
                     {
-                        custom_list_view.view_flag++
-                        player.load_playlist(index)
-                        custom_list_view.model = player.new_track_list
-
+                        player.on_track_checkbox_checked(custom_index)
                     }
-                    else if (custom_list_view.view_flag && !playlist_options.existing_option_pressed)
-                    {
-                        player.on_track_selected_playlist(index)
-                    }
-                    else if(!custom_list_view.view_flag && playlist_options.existing_option_pressed)
-                    {
-                        player.existing_playlist_add_multiple(index)
-                        custom_list_view.model = player.new_track_list
-                    }
-
                 }
 
-
             }
+            MouseArea{
+                anchors.fill:custom_text
+                onClicked: {
+                    custom_list_view.currentIndex = custom_index
+                    player.on_track_selected(custom_list_view.currentIndex)
+
+                }
+                onDoubleClicked: {
+                    player.load_playlist(custom_list_view.currentIndex)
+                    custom_text.x = 20
+                    custom_list_view.model = player.new_track_list
+                    player.selected_playlist(custom_index)
+
+                    //console.log("View changed",root.view)
+
+
+                }
+            }
+
 
         }
     }
@@ -419,9 +370,7 @@ Window {
             MenuItem{
                 text: "Existing playlist"
                 onTriggered: {
-
-                    custom_list_view.model = player.playlist_list
-                    playlist_options.existing_option_pressed = 1
+                    player.existing_playlist_add_multiple(custom_list_view.currentIndex)
                 }
 
             }
@@ -437,17 +386,9 @@ Window {
 
 
         onAccepted: {
-            if(!track_list_checkbox.check_count)
-            {
-                player.on_create_playlist_clicked(playlist_name.text,current_media_index)
-                custom_list.append({"Text":playlist_name.text})
-            }
-            else
-            {
-                player.create_playlist_add_multiple(playlist_name.text)
-                custom_list.append({"Text":playlist_name.text})
 
-            }
+            player.create_playlist_add_multiple(playlist_name.text)
+            custom_list.append({"Text":playlist_name.text})
 
         }
 
@@ -460,18 +401,47 @@ Window {
     Button {
         id: home
         x: 46
-        y: 31
+        y: 29
         text: qsTr("Home")
-        onClicked:
-        {
-            custom_list_view.view_flag = 0
+        onClicked: {
             custom_list_view.model = player.playlist_list
             player.on_home_clicked()
-
-
+            view = 0
+            player.clear_selected_playlist()
+            //console.log("view changed",root.view)
         }
     }
 
+    Button {
+        id: discard_playlist
+        x: 777
+        y: 17
+        text: qsTr("Delete")
+
+        onClicked: {
+
+            if(!player.selected_playlist)
+            {
+                player.delete_playlist()
+                custom_list_view.model = player.playlist_list
+            }
+            else
+            {
+
+                player.delete_track()
+                custom_list_view.model = player.new_track_list
+            }
+        }
+    }
+
+    Label {
+        id: track_count
+        x: 46
+        y: 180
+        width: 29
+        height: 17
+        text: qsTr("")
+    }
 
 
 }
